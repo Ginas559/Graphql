@@ -1,28 +1,34 @@
 package vn.iotstar.graphql;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.graphql.data.method.annotation.MutationMapping;
-import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.*;
 import org.springframework.stereotype.Controller;
-import vn.iotstar.entity.Category;
-import vn.iotstar.entity.Product;
-import vn.iotstar.entity.User;
-import vn.iotstar.repository.CategoryRepository;
-import vn.iotstar.repository.ProductRepository;
-import vn.iotstar.repository.UserRepository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import vn.iotstar.entity.*;
+import vn.iotstar.repository.*;
+
+import java.math.BigDecimal;
+import java.util.*;
 
 @Controller
-@RequiredArgsConstructor
+@Transactional
 public class ShopGraphQLController {
 
-    private final UserRepository userRepo;
-    private final CategoryRepository categoryRepo;
     private final ProductRepository productRepo;
+    private final CategoryRepository categoryRepo;
+    private final UserRepository userRepo;
 
-    // ---------- Queries ----------
+    public ShopGraphQLController(ProductRepository productRepo,
+                                 CategoryRepository categoryRepo,
+                                 UserRepository userRepo) {
+        this.productRepo = productRepo;
+        this.categoryRepo = categoryRepo;
+        this.userRepo = userRepo;
+    }
+
+    // ==========================
+    // QUERIES
+    // ==========================
     @QueryMapping
     public List<Product> productsSortedByPriceAsc() {
         return productRepo.findAllByOrderByPriceAsc();
@@ -34,35 +40,115 @@ public class ShopGraphQLController {
     }
 
     @QueryMapping
-    public List<User> users() { return userRepo.findAll(); }
+    public List<Product> products() {
+        return productRepo.findAll();
+    }
 
     @QueryMapping
-    public List<Category> categories() { return categoryRepo.findAll(); }
+    public List<Category> categories() {
+        return categoryRepo.findAll();
+    }
 
     @QueryMapping
-    public List<Product> products() { return productRepo.findAll(); }
+    public List<User> users() {
+        return userRepo.findAll();
+    }
 
-    // ---------- Mutations: User ----------
-    public record UserInput(String fullname, String email, String password, String phone) {}
+    @QueryMapping
+    public Optional<User> user(@Argument Long id) {
+        return userRepo.findById(id);
+    }
 
+    @QueryMapping
+    public Optional<Category> category(@Argument Long id) {
+        return categoryRepo.findById(id);
+    }
+
+    @QueryMapping
+    public Optional<Product> product(@Argument Long id) {
+        return productRepo.findById(id);
+    }
+
+    // ==========================
+    // FIELD RESOLVERS (relations)
+    // ==========================
+    @SchemaMapping(typeName = "Product", field = "user")
+    public User user(Product product) {
+        return product.getUser();
+    }
+
+    @SchemaMapping(typeName = "Product", field = "category")
+    public Category category(Product product) {
+        return product.getCategory();
+    }
+
+    @SchemaMapping(typeName = "User", field = "products")
+    public List<Product> products(User user) {
+        return user.getProducts();
+    }
+
+    @SchemaMapping(typeName = "User", field = "categories")
+    public Set<Category> categories(User user) {
+        return user.getCategories();
+    }
+
+    @SchemaMapping(typeName = "Category", field = "products")
+    public List<Product> products(Category c) {
+        return c.getProducts();
+    }
+
+    @SchemaMapping(typeName = "Category", field = "users")
+    public Set<User> users(Category c) {
+        return c.getUsers();
+    }
+
+    // ==========================
+    // MUTATIONS - USER
+    // ==========================
     @MutationMapping
-    public User createUser(@Argument UserInput input) {
-        User u = User.builder()
-                .fullname(input.fullname())
-                .email(input.email())
-                .password(input.password())
-                .phone(input.phone())
-                .build();
+    public User createUser(@Argument String fullname,
+                           @Argument String email,
+                           @Argument String password,
+                           @Argument String phone,
+                           @Argument List<Long> categoryIds) {
+        if (userRepo.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+        User u = new User();
+        u.setFullname(fullname);
+        u.setEmail(email);
+        u.setPassword(password);
+        u.setPhone(phone);
+
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            Set<Category> cats = new LinkedHashSet<>(categoryRepo.findAllById(categoryIds));
+            u.setCategories(cats);
+        }
         return userRepo.save(u);
     }
 
     @MutationMapping
-    public User updateUser(@Argument Long id, @Argument UserInput input) {
-        User u = userRepo.findById(id).orElseThrow();
-        if (input.fullname()!=null) u.setFullname(input.fullname());
-        if (input.email()!=null) u.setEmail(input.email());
-        if (input.password()!=null) u.setPassword(input.password());
-        if (input.phone()!=null) u.setPhone(input.phone());
+    public User updateUser(@Argument Long id,
+                           @Argument String fullname,
+                           @Argument String email,
+                           @Argument String password,
+                           @Argument String phone,
+                           @Argument List<Long> categoryIds) {
+        User u = userRepo.findById(id).orElseThrow(() -> new NoSuchElementException("User not found"));
+        if (fullname != null) u.setFullname(fullname);
+        if (email != null) {
+            if (!email.equals(u.getEmail()) && userRepo.existsByEmail(email)) {
+                throw new IllegalArgumentException("Email already exists");
+            }
+            u.setEmail(email);
+        }
+        if (password != null) u.setPassword(password);
+        if (phone != null) u.setPhone(phone);
+
+        if (categoryIds != null) {
+            Set<Category> cats = new LinkedHashSet<>(categoryRepo.findAllById(categoryIds));
+            u.setCategories(cats);
+        }
         return userRepo.save(u);
     }
 
@@ -73,20 +159,25 @@ public class ShopGraphQLController {
         return true;
     }
 
-    // ---------- Mutations: Category ----------
-    public record CategoryInput(String name, String images) {}
-
+    // ==========================
+    // MUTATIONS - CATEGORY
+    // ==========================
     @MutationMapping
-    public Category createCategory(@Argument CategoryInput input) {
-        Category c = Category.builder().name(input.name()).images(input.images()).build();
+    public Category createCategory(@Argument String name,
+                                   @Argument String images) {
+        Category c = new Category();
+        c.setName(name);
+        c.setImages(images);
         return categoryRepo.save(c);
     }
 
     @MutationMapping
-    public Category updateCategory(@Argument Long id, @Argument CategoryInput input) {
-        Category c = categoryRepo.findById(id).orElseThrow();
-        if (input.name()!=null) c.setName(input.name());
-        if (input.images()!=null) c.setImages(input.images());
+    public Category updateCategory(@Argument Long id,
+                                   @Argument String name,
+                                   @Argument String images) {
+        Category c = categoryRepo.findById(id).orElseThrow(() -> new NoSuchElementException("Category not found"));
+        if (name != null) c.setName(name);
+        if (images != null) c.setImages(images);
         return categoryRepo.save(c);
     }
 
@@ -97,33 +188,64 @@ public class ShopGraphQLController {
         return true;
     }
 
-    // ---------- Mutations: Product ----------
-    public record ProductInput(String title, Integer quantity, String desc,
-                               Double price, Long userId, Long categoryId) {}
-
+    // ==========================
+    // MUTATIONS - PRODUCT
+    // ==========================
     @MutationMapping
-    public Product createProduct(@Argument ProductInput input) {
+    public Product createProduct(@Argument String title,
+                                 @Argument Integer quantity,
+                                 @Argument String desc,
+                                 @Argument BigDecimal price,
+                                 @Argument Long userId,
+                                 @Argument Long categoryId) {
+        User u = (userId != null) ? userRepo.findById(userId).orElse(null) : null;
+        Category c = (categoryId != null) ? categoryRepo.findById(categoryId).orElse(null) : null;
+
+        if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("price must be >= 0");
+        }
+        if (quantity == null || quantity < 0) {
+            throw new IllegalArgumentException("quantity must be >= 0");
+        }
+
         Product p = new Product();
-        p.setTitle(input.title());
-        p.setQuantity(input.quantity());
-        p.setDesc(input.desc());
-        p.setPrice(input.price());
-        if (input.userId()!=null)
-            p.setUser(userRepo.findById(input.userId()).orElse(null));
-        if (input.categoryId()!=null)
-            p.setCategory(categoryRepo.findById(input.categoryId()).orElse(null));
+        p.setTitle(title);
+        p.setQuantity(quantity);
+        p.setDesc(desc);
+        p.setPrice(price);
+        p.setUser(u);
+        p.setCategory(c);
         return productRepo.save(p);
     }
 
     @MutationMapping
-    public Product updateProduct(@Argument Long id, @Argument ProductInput input) {
-        Product p = productRepo.findById(id).orElseThrow();
-        if (input.title()!=null) p.setTitle(input.title());
-        if (input.quantity()!=null) p.setQuantity(input.quantity());
-        if (input.desc()!=null) p.setDesc(input.desc());
-        if (input.price()!=null) p.setPrice(input.price());
-        if (input.userId()!=null) p.setUser(userRepo.findById(input.userId()).orElse(null));
-        if (input.categoryId()!=null) p.setCategory(categoryRepo.findById(input.categoryId()).orElse(null));
+    public Product updateProduct(@Argument Long id,
+                                 @Argument String title,
+                                 @Argument Integer quantity,
+                                 @Argument String desc,
+                                 @Argument BigDecimal price,
+                                 @Argument Long userId,
+                                 @Argument Long categoryId) {
+        Product p = productRepo.findById(id).orElseThrow(() -> new NoSuchElementException("Product not found"));
+
+        if (title != null) p.setTitle(title);
+        if (quantity != null) {
+            if (quantity < 0) throw new IllegalArgumentException("quantity must be >= 0");
+            p.setQuantity(quantity);
+        }
+        if (desc != null) p.setDesc(desc);
+        if (price != null) {
+            if (price.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("price must be >= 0");
+            p.setPrice(price);
+        }
+        if (userId != null) {
+            User u = userRepo.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
+            p.setUser(u);
+        }
+        if (categoryId != null) {
+            Category c = categoryRepo.findById(categoryId).orElseThrow(() -> new NoSuchElementException("Category not found"));
+            p.setCategory(c);
+        }
         return productRepo.save(p);
     }
 

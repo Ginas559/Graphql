@@ -4,87 +4,107 @@
 <body>
 <header th:replace="admin/fragments/layout_admin :: header"></header>
 
-<!-- PRODUCTS -->
-<h2>Products — <small>price ASC</small></h2>
-<div class="controls">
-  <button id="btnLoad">Load all</button>
-  <label>Category ID: <input id="categoryId" type="number" value="1" style="width:80px"></label>
-  <button id="btnByCat">Load by Category</button>
-</div>
+<h1>Products</h1>
 
-<table id="tbl">
-  <thead>
-    <tr>
-      <th>ID</th><th>Title</th><th>Qty</th><th>Price</th><th>User</th><th>Category</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-<small>Click 1 dòng để đổ dữ liệu lên form Product.</small>
+<div class="row">
+  <div class="card">
+    <div class="section-title">1) Products price ASC</div>
+    <div class="toolbar">
+      <button class="btn sm" id="btnLoad">Tải danh sách</button>
+    </div>
+    <table id="tbl">
+      <thead>
+      <tr><th>ID</th><th>Title</th><th>Qty</th><th>Price</th><th>User</th><th>Category</th></tr>
+      </thead><tbody></tbody>
+    </table>
+    <div class="muted">Click 1 dòng để đổ dữ liệu lên form Product.</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">2) Products by Category</div>
+    <div class="toolbar">
+      <input id="categoryId" type="number" placeholder="categoryId" style="width:120px">
+      <button class="btn sm" id="btnByCat">Tải theo category</button>
+    </div>
+    <table>
+      <thead>
+      <tr><th>ID</th><th>Title</th><th>Price</th><th>User</th><th>Category</th></tr>
+      </thead><tbody id="byCatBody"></tbody>
+    </table>
+  </div>
+</div>
 
 <hr>
 
-<!-- PRODUCT CRUD -->
 <h3>Product CRUD</h3>
-<div class="controls" style="flex-wrap:wrap">
-  <label>ID <input id="p_id" type="number" style="width:80px"></label>
-  <label>Title <input id="p_title" type="text" style="width:160px"></label>
-  <label>Qty <input id="p_qty" type="number" style="width:80px"></label>
-  <label>Price <input id="p_price" type="number" step="0.01" style="width:100px"></label>
-  <label>UserId <input id="p_user" type="number" style="width:80px"></label>
-  <label>CategoryId <input id="p_cat" type="number" style="width:90px"></label>
-  <label>Desc <input id="p_desc" type="text" style="width:200px"></label>
-  <button id="btnPCreate">Create</button>
-  <button id="btnPUpdate">Update</button>
-  <button id="btnPDelete">Delete</button>
-  <button id="btnPClear">Clear</button>
+<div class="grid">
+  <div class="field"><label>ID</label><input id="p_id" type="number"></div>
+  <div class="field"><label>Title</label><input id="p_title" type="text"></div>
+  <div class="field"><label>Qty</label><input id="p_qty" type="number"></div>
+  <div class="field"><label>Price</label><input id="p_price" type="number" step="0.01"></div>
+  <div class="field"><label>UserId</label><input id="p_user" type="number"></div>
+  <div class="field"><label>CategoryId</label><input id="p_cat" type="number"></div>
+  <div class="field" style="grid-column:1/7"><label>Desc</label><input id="p_desc" type="text"></div>
+</div>
+<div class="toolbar" style="margin-top:8px">
+  <button class="btn ok sm" id="btnPCreate">Create</button>
+  <button class="btn sm" id="btnPUpdate">Update</button>
+  <button class="btn danger sm" id="btnPDelete">Delete</button>
+  <button class="btn gray sm" id="btnPClear">Clear</button>
 </div>
 
 <hr>
 
-<!-- CATEGORY LIST -->
 <h3>Categories</h3>
-<button id="btnCatReload">Reload categories</button>
+<div class="toolbar">
+  <button class="btn sm" id="btnCatReload">Reload categories</button>
+</div>
 <table id="tblCat">
   <thead><tr><th>ID</th><th>Name</th><th>Images</th></tr></thead>
   <tbody></tbody>
 </table>
 
-<!-- CATEGORY CRUD -->
 <h3>Category CRUD</h3>
-<div class="controls" style="flex-wrap:wrap">
-  <label>ID <input id="c_id" type="number" style="width:80px"></label>
-  <label>Name <input id="c_name" type="text" style="width:160px"></label>
-  <label>Images <input id="c_img" type="text" style="width:200px"></label>
-  <button id="btnCCreate">Create</button>
-  <button id="btnCUpdate">Update</button>
-  <button id="btnCDelete">Delete</button>
+<div class="grid">
+  <div class="field"><label>ID</label><input id="c_id" type="number"></div>
+  <div class="field"><label>Name</label><input id="c_name" type="text"></div>
+  <div class="field" style="grid-column:1/4"><label>Images</label><input id="c_img" type="text"></div>
+</div>
+<div class="toolbar" style="margin-top:8px">
+  <button class="btn ok sm" id="btnCCreate">Create</button>
+  <button class="btn sm" id="btnCUpdate">Update</button>
+  <button class="btn danger sm" id="btnCDelete">Delete</button>
 </div>
 
 <hr>
 
-<!-- USER LIST -->
 <h3>Users</h3>
-<button id="btnUserReload">Reload users</button>
+<div class="toolbar">
+  <button class="btn sm" id="btnUserReload">Reload users</button>
+</div>
 <table id="tblUser">
   <thead><tr><th>ID</th><th>Fullname</th><th>Email</th><th>Phone</th></tr></thead>
   <tbody></tbody>
 </table>
 
-<!-- USER CRUD -->
 <h3>User CRUD</h3>
-<div class="controls" style="flex-wrap:wrap">
-  <label>ID <input id="u_id" type="number" style="width:80px"></label>
-  <label>Fullname <input id="u_fullname" type="text" style="width:160px"></label>
-  <label>Email <input id="u_email" type="email" style="width:200px"></label>
-  <label>Password <input id="u_pass" type="text" style="width:140px"></label>
-  <label>Phone <input id="u_phone" type="text" style="width:120px"></label>
-  <button id="btnUCreate">Create</button>
-  <button id="btnUUpdate">Update</button>
-  <button id="btnUDelete">Delete</button>
+<div class="grid">
+  <div class="field"><label>ID</label><input id="u_id" type="number"></div>
+  <div class="field"><label>Fullname</label><input id="u_fullname" type="text"></div>
+  <div class="field"><label>Email</label><input id="u_email" type="email"></div>
+  <div class="field"><label>Password</label><input id="u_pass" type="text"></div>
+  <div class="field"><label>Phone</label><input id="u_phone" type="text"></div>
+</div>
+<div class="toolbar" style="margin-top:8px">
+  <button class="btn ok sm" id="btnUCreate">Create</button>
+  <button class="btn sm" id="btnUUpdate">Update</button>
+  <button class="btn danger sm" id="btnUDelete">Delete</button>
 </div>
 
 <footer th:replace="admin/fragments/layout_admin :: footer"></footer>
+<div th:replace="admin/fragments/layout_admin :: toast"></div>
+
+<!-- nạp JS CRUD -->
 <div th:replace="admin/fragments/ajax :: productsScripts"></div>
 </body>
 </html>

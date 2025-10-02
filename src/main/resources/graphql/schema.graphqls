@@ -1,71 +1,58 @@
-type User {
-  id: ID!
-  fullname: String
-  email: String
-  password: String
-  phone: String
-  categories: [Category!]
-  products: [Product!]
-}
-
-type Category {
-  id: ID!
-  name: String
-  images: String
-  products: [Product!]
-}
-
-type Product {
-  id: ID!
-  title: String
-  quantity: Int
-  desc: String
-  price: Float
-  user: User
-  category: Category
-}
-
-# -------- Queries --------
 type Query {
+  # Yêu cầu đề
   productsSortedByPriceAsc: [Product!]!
   productsByCategory(categoryId: ID!): [Product!]!
+
+  # Phụ trợ test/chấm
+  products: [Product!]!
+  product(id: ID!): Product
+  categories: [Category!]!
+  category(id: ID!): Category
   users: [User!]!
+  user(id: ID!): User
+}
+
+type Mutation {
+  # USER
+  createUser(fullname: String!, email: String!, password: String!, phone: String, categoryIds: [ID!]): User!
+  updateUser(id: ID!, fullname: String, email: String, password: String, phone: String, categoryIds: [ID!]): User!
+  deleteUser(id: ID!): Boolean!
+
+  # CATEGORY
+  createCategory(name: String!, images: String): Category!
+  updateCategory(id: ID!, name: String, images: String): Category!
+  deleteCategory(id: ID!): Boolean!
+
+  # PRODUCT
+  createProduct(title: String!, quantity: Int!, desc: String, price: Float!, userId: ID, categoryId: ID): Product!
+  updateProduct(id: ID!, title: String, quantity: Int, desc: String, price: Float, userId: ID, categoryId: ID): Product!
+  deleteProduct(id: ID!): Boolean!
+}
+
+type User {
+  id: ID!
+  fullname: String!
+  email: String!
+  password: String!
+  phone: String
   categories: [Category!]!
   products: [Product!]!
 }
 
-# -------- Mutations (CRUD) --------
-input UserInput {
-  fullname: String
-  email: String
-  password: String
-  phone: String
-}
-
-input CategoryInput {
-  name: String
+type Category {
+  id: ID!
+  name: String!
   images: String
+  users: [User!]!
+  products: [Product!]!
 }
 
-input ProductInput {
-  title: String
-  quantity: Int
+type Product {
+  id: ID!
+  title: String!
+  quantity: Int!
   desc: String
-  price: Float
-  userId: ID
-  categoryId: ID
-}
-
-type Mutation {
-  createUser(input: UserInput!): User!
-  updateUser(id: ID!, input: UserInput!): User!
-  deleteUser(id: ID!): Boolean!
-
-  createCategory(input: CategoryInput!): Category!
-  updateCategory(id: ID!, input: CategoryInput!): Category!
-  deleteCategory(id: ID!): Boolean!
-
-  createProduct(input: ProductInput!): Product!
-  updateProduct(id: ID!, input: ProductInput!): Product!
-  deleteProduct(id: ID!): Boolean!
+  price: Float!
+  user: User
+  category: Category
 }
